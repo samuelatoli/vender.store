@@ -79,3 +79,35 @@ def test_product_detail_page(client):
     assert response.status_code == 200
     assert b'Detail Product' in response.data
     assert b'Detailed view' in response.data
+
+
+def test_admin_can_add_payment_method(client):
+    # First user becomes admin
+    response = client.post('/signup', data={'email': 'admin@example.com', 'password': 'password'}, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Account created' in response.data
+
+    response = client.post('/login', data={'email': 'admin@example.com', 'password': 'password'}, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Logged in successfully.' in response.data
+
+    response = client.post('/admin/payments', data={'name': 'PayPal', 'details': 'Use paypal.me/admin', 'active': 'on'}, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Payment method added.' in response.data
+    assert b'PayPal' in response.data
+
+    # Ensure payment option appears on product detail page
+    conn = sqlite3.connect(app_module.DB_PATH)
+    conn.execute(
+        'INSERT INTO products (name, description, contact, price, image) VALUES (?, ?, ?, ?, ?)',
+        ('Detail Product', 'Detailed view', 'details@example.com', 5.50, None)
+    )
+    conn.commit()
+    product_id = conn.execute('SELECT id FROM products WHERE name = ?', ('Detail Product',)).fetchone()[0]
+    conn.close()
+
+    response = client.get(f'/product/{product_id}')
+    assert response.status_code == 200
+    assert b'Payment options' in response.data
+    assert b'PayPal' in response.data
+    assert b'paypal.me/admin' in response.data

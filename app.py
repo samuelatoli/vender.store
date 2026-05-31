@@ -29,8 +29,21 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        is_admin INTEGER NOT NULL DEFAULT 0
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS payment_methods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        details TEXT,
+        active INTEGER NOT NULL DEFAULT 1
+    )''')
+
+    # Add legacy schema migration support for older databases.
+    user_columns = [row[1] for row in c.execute("PRAGMA table_info(users)").fetchall()]
+    if 'is_admin' not in user_columns:
+        c.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0')
+
     conn.commit()
     conn.close()
 
@@ -67,11 +80,12 @@ def index():
 def product_detail(product_id):
     conn = get_db_connection()
     product = conn.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
+    payment_methods = conn.execute('SELECT name, details FROM payment_methods WHERE active = 1 ORDER BY id DESC').fetchall()
     conn.close()
     if product is None:
         flash('Product not found.')
         return redirect(url_for('index'))
-    return render_template('detail.html', product=product)
+    return render_template('detail.html', product=product, payment_methods=payment_methods)
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -116,15 +130,20 @@ def signup():
             return redirect(url_for('signup'))
         hashed = generate_password_hash(password)
         conn = get_db_connection()
+        admin_exists = conn.execute('SELECT 1 FROM users WHERE is_admin = 1 LIMIT 1').fetchone()
+        is_admin = 0 if admin_exists else 1
         try:
-            conn.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed))
+            conn.execute('INSERT INTO users (email, password, is_admin) VALUES (?, ?, ?)', (email, hashed, is_admin))
             conn.commit()
         except sqlite3.IntegrityError:
             flash('Email already taken.')
             conn.close()
             return redirect(url_for('signup'))
         conn.close()
-        flash('Account created. Please log in.')
+        if is_admin:
+            flash('Account created. Please log in. Admin access configured.')
+        else:
+            flash('Account created. Please log in.')
         return redirect(url_for('login'))
     return render_template('signup.html')
 
@@ -135,11 +154,12 @@ def login():
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
         conn = get_db_connection()
-        user = conn.execute('SELECT id, email, password FROM users WHERE email = ?', (email,)).fetchone()
+        user = conn.execute('SELECT id, email, password, is_admin FROM users WHERE email = ?', (email,)).fetchone()
         conn.close()
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['email'] = user['email']
+            session['is_admin'] = bool(user['is_admin'])
             flash('Logged in successfully.')
             return redirect(url_for('index'))
         flash('Invalid email or password.')
@@ -151,8 +171,71 @@ def login():
 def logout():
     session.pop('user_id', None)
     session.pop('email', None)
+    session.pop('is_admin', None)
     flash('Logged out.')
     return redirect(url_for('index'))
+
+
+def user_is_admin():
+    user_id = session.get('user_id')
+    if not user_id:
+        return False
+    conn = get_db_connection()
+    user = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,)).fetchone()
+    conn.close()
+    return bool(user and user['is_admin'])
+
+
+@app.route('/admin/payments', methods=['GET', 'POST'])
+def admin_payments():
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        details = request.form.get('details', '').strip()
+        active = 1 if request.form.get('active') == 'on' else 0
+        if not name:
+            flash('Payment method name is required.')
+            return redirect(url_for('admin_payments'))
+        conn.execute('INSERT INTO payment_methods (name, details, active) VALUES (?, ?, ?)', (name, details, active))
+        conn.commit()
+        flash('Payment method added.')
+        conn.close()
+        return redirect(url_for('admin_payments'))
+
+    payment_methods = conn.execute('SELECT * FROM payment_methods ORDER BY id DESC').fetchall()
+    conn.close()
+    return render_template('admin_payments.html', payment_methods=payment_methods)
+
+
+@app.route('/admin/payments/<int:method_id>/toggle')
+def toggle_payment_method(method_id):
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    conn.execute('UPDATE payment_methods SET active = 1 - active WHERE id = ?', (method_id,))
+    conn.commit()
+    conn.close()
+    flash('Payment method status updated.')
+    return redirect(url_for('admin_payments'))
+
+
+@app.route('/admin/payments/<int:method_id>/delete')
+def delete_payment_method(method_id):
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    conn.execute('DELETE FROM payment_methods WHERE id = ?', (method_id,))
+    conn.commit()
+    conn.close()
+    flash('Payment method deleted.')
+    return redirect(url_for('admin_payments'))
+
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

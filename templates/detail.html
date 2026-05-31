@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>{{ product['name'] }}</h2>
+  <div class="product-detail">
+    {% if product['image'] %}
+      <img class="detail-image" src="/uploads/{{ product['image'] }}" alt="{{ product['name'] }}">
+    {% endif %}
+    <div class="detail-body">
+      <p>{{ product['description'] }}</p>
+      <p><strong>Price:</strong> ${{ '%.2f'|format(product['price'] or 0) }}</p>
+      <p><strong>Contact:</strong> {{ product['contact'] or 'Not provided' }}</p>
+      {% if payment_methods %}
+      <div class="payment-box">
+        <h3>Payment options</h3>
+        <p>Contact the administrator to complete payment using any available option below.</p>
+        <ul class="payment-list">
+          {% for method in payment_methods %}
+          <li>
+            <strong>{{ method['name'] }}</strong>
+            <p>{{ method['details'] }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      <p><a href="{{ url_for('index') }}">Back to products</a></p>
+    </div>
+  </div>
+{% endblock %}

@@ -18,6 +18,9 @@
           <a href="{{ url_for('upload') }}">Upload</a>
           {% if session.email %}
             <span class="user-badge">{{ session.email }}</span>
+            {% if session.get('is_admin') %}
+              <a href="{{ url_for('admin_payments') }}">Admin</a>
+            {% endif %}
             <a href="{{ url_for('logout') }}">Logout</a>
           {% else %}
             <a href="{{ url_for('login') }}">Login</a>

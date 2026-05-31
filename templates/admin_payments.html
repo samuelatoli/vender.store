@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+  <section class="admin-panel">
+    <div class="admin-header">
+      <div>
+        <p class="eyebrow">Admin Panel</p>
+        <h2>Payment Methods</h2>
+        <p>Add payment options that buyers can use to pay the administrator.</p>
+      </div>
+      <a class="button primary" href="{{ url_for('index') }}">Back to Products</a>
+    </div>
+
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h3>Add Payment Method</h3>
+        <form method="post">
+          <label>Name<br><input type="text" name="name" required></label>
+          <label>Details<br><textarea name="details" rows="4"></textarea></label>
+          <label class="toggle-label"><input type="checkbox" name="active" checked> Active</label>
+          <button type="submit">Save Method</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <h3>Existing Methods</h3>
+        {% if payment_methods %}
+          <ul class="payment-admin-list">
+            {% for method in payment_methods %}
+              <li class="payment-admin-item {{ 'inactive' if not method['active'] else '' }}">
+                <div>
+                  <strong>{{ method['name'] }}</strong>
+                  <p>{{ method['details'] or 'No details provided.' }}</p>
+                </div>
+                <div class="admin-actions">
+                  <a class="button secondary" href="{{ url_for('toggle_payment_method', method_id=method['id']) }}">{{ 'Activate' if not method['active'] else 'Deactivate' }}</a>
+                  <a class="button danger" href="{{ url_for('delete_payment_method', method_id=method['id']) }}">Delete</a>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No payment methods yet. Add one to let customers pay the admin.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}
