@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+  <section class="admin-panel">
+    <div class="admin-header">
+      <div>
+        <p class="eyebrow">Admin Panel</p>
+        <h2>Transactions</h2>
+        <p>Recent purchase requests</p>
+      </div>
+      <a class="button primary" href="{{ url_for('admin_payments') }}">Payment Methods</a>
+    </div>
+
+    <div class="admin-card">
+      {% if transactions %}
+        <ul class="payment-admin-list">
+          {% for t in transactions %}
+            <li>
+              <div>
+                <strong>{{ t['product_name'] or 'Product #' ~ t['product_id'] }}</strong>
+                <p>Buyer: {{ t['buyer_name'] }} — {{ t['buyer_contact'] }}</p>
+                <p>Method: {{ t['payment_method'] or 'Not selected' }}</p>
+                <p>{{ t['note'] or '' }}</p>
+              </div>
+              <div class="admin-actions">
+                <span class="muted">{{ t['created_at'] }}</span>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No transactions yet.</p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

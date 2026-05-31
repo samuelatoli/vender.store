@@ -367,6 +367,10 @@ button:hover {
   margin-bottom: 14px;
 }
 
+.payment-box form label { margin-bottom: 12px; display:block }
+.payment-box form select, .payment-box form input, .payment-box form textarea { width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); }
+.payment-box form button { margin-top:12px }
+
 .payment-list strong {
   display: block;
   margin-bottom: 6px;

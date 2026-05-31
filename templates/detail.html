@@ -12,7 +12,21 @@
       {% if payment_methods %}
       <div class="payment-box">
         <h3>Payment options</h3>
-        <p>Contact the administrator to complete payment using any available option below.</p>
+        <p>Select a payment option and send a request to the administrator to complete payment.</p>
+        <form method="post" action="{{ url_for('buy_product', product_id=product['id']) }}">
+          <label>Your name<br><input type="text" name="buyer_name" required></label>
+          <label>Your contact (email/phone)<br><input type="text" name="buyer_contact" required></label>
+          <label>Payment method<br>
+            <select name="payment_method">
+              <option value="">-- choose --</option>
+              {% for method in payment_methods %}
+              <option value="{{ method['id'] }}">{{ method['name'] }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Note (optional)<br><textarea name="note" rows="3"></textarea></label>
+          <button type="submit">Request Payment</button>
+        </form>
         <ul class="payment-list">
           {% for method in payment_methods %}
           <li>

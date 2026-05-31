@@ -111,3 +111,30 @@ def test_admin_can_add_payment_method(client):
     assert b'Payment options' in response.data
     assert b'PayPal' in response.data
     assert b'paypal.me/admin' in response.data
+
+
+def test_user_can_request_payment(client):
+    # prepare a payment method and a product
+    conn = sqlite3.connect(app_module.DB_PATH)
+    conn.execute('INSERT INTO payment_methods (name, details, active) VALUES (?, ?, ?)', ('Bank Transfer', 'Acct: 123-456', 1))
+    conn.execute('INSERT INTO products (name, description, contact, price, image) VALUES (?, ?, ?, ?, ?)', ('Buyable', 'Buy now', 'seller@example.com', 12.00, None))
+    conn.commit()
+    product_id = conn.execute('SELECT id FROM products WHERE name = ?', ('Buyable',)).fetchone()[0]
+    conn.close()
+
+    response = client.post(f'/product/{product_id}/buy', data={
+        'buyer_name': 'Alice',
+        'buyer_contact': 'alice@example.com',
+        'payment_method': '1',
+        'note': 'Please confirm'
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b'Purchase request sent' in response.data
+
+    conn = sqlite3.connect(app_module.DB_PATH)
+    t = conn.execute('SELECT buyer_name, buyer_contact, note FROM transactions WHERE product_id = ?', (product_id,)).fetchone()
+    conn.close()
+    assert t is not None
+    assert t[0] == 'Alice'
+    assert 'alice@example.com' in t[1]

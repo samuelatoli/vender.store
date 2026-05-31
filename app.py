@@ -39,6 +39,19 @@ def init_db():
         active INTEGER NOT NULL DEFAULT 1
     )''')
 
+    c.execute('''CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        buyer_name TEXT NOT NULL,
+        buyer_contact TEXT NOT NULL,
+        payment_method_id INTEGER,
+        note TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(product_id) REFERENCES products(id),
+        FOREIGN KEY(payment_method_id) REFERENCES payment_methods(id)
+    )''')
+
     # Add legacy schema migration support for older databases.
     user_columns = [row[1] for row in c.execute("PRAGMA table_info(users)").fetchall()]
     if 'is_admin' not in user_columns:
@@ -184,6 +197,46 @@ def user_is_admin():
     user = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,)).fetchone()
     conn.close()
     return bool(user and user['is_admin'])
+
+
+@app.route('/product/<int:product_id>/buy', methods=['POST'])
+def buy_product(product_id):
+    name = request.form.get('buyer_name', '').strip()
+    contact = request.form.get('buyer_contact', '').strip()
+    payment_method_id = request.form.get('payment_method')
+    note = request.form.get('note', '').strip()
+
+    if not name or not contact:
+        flash('Name and contact are required to request payment.')
+        return redirect(url_for('product_detail', product_id=product_id))
+
+    try:
+        pm_id = int(payment_method_id) if payment_method_id else None
+    except ValueError:
+        pm_id = None
+
+    conn = get_db_connection()
+    conn.execute('''INSERT INTO transactions (product_id, buyer_name, buyer_contact, payment_method_id, note)
+                 VALUES (?, ?, ?, ?, ?)''', (product_id, name, contact, pm_id, note))
+    conn.commit()
+    conn.close()
+    flash('Purchase request sent to administrator. They will contact you to complete payment.')
+    return redirect(url_for('product_detail', product_id=product_id))
+
+
+@app.route('/admin/transactions')
+def admin_transactions():
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    rows = conn.execute('''SELECT t.id, t.product_id, p.name as product_name, t.buyer_name, t.buyer_contact, pm.name as payment_method, t.note, t.status, t.created_at
+                           FROM transactions t
+                           LEFT JOIN products p ON p.id = t.product_id
+                           LEFT JOIN payment_methods pm ON pm.id = t.payment_method_id
+                           ORDER BY t.created_at DESC''').fetchall()
+    conn.close()
+    return render_template('admin_transactions.html', transactions=rows)
 
 
 @app.route('/admin/payments', methods=['GET', 'POST'])
