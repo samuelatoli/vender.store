@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="auth-card">
+    <h2>Support Chat</h2>
+    <p>Ask a question to the administrator. Include your email so they can reply.</p>
+    <form method="post">
+      <label>Name<br><input type="text" name="name" value="{{ session.get('email') and session.get('email').split('@')[0] or '' }}" required></label>
+      <label>Email<br><input type="email" name="email" value="{{ session.get('email') or '' }}" required></label>
+      <label>Product (optional - product id)<br><input type="text" name="product_id"></label>
+      <label>Message<br><textarea name="message" rows="4" required></textarea></label>
+      <button type="submit">Send Message</button>
+    </form>
+  </div>
+
+  {% if messages %}
+  <section class="chat-history">
+    <h3>Your conversation</h3>
+    <ul class="chat-list">
+      {% for m in messages %}
+      <li class="chat-{{ m['sender'] }}">
+        <div class="chat-meta"><strong>{{ m['name'] or m['email'] }}</strong> <span class="muted">{{ m['created_at'] }}</span></div>
+        <div class="chat-body">{{ m['message'] }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+{% endblock %}

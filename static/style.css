@@ -371,6 +371,14 @@ button:hover {
 .payment-box form select, .payment-box form input, .payment-box form textarea { width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); }
 .payment-box form button { margin-top:12px }
 
+.chat-history { margin-top: 24px }
+.chat-list { list-style:none;padding:0 }
+.chat-list li { margin-bottom: 12px; }
+.chat-user .chat-body { background: #fff; padding:12px; border-radius:12px; display:inline-block }
+.chat-admin .chat-body { background: #eaf2ff; padding:12px; border-radius:12px; display:inline-block }
+.chat-meta { font-size:0.85rem; color:var(--muted); margin-bottom:6px }
+.chat-list.admin { max-height: 60vh; overflow:auto }
+
 .payment-list strong {
   display: block;
   margin-bottom: 6px;

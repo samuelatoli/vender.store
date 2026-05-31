@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+  <section class="admin-panel">
+    <div class="admin-header">
+      <div>
+        <p class="eyebrow">Admin Panel</p>
+        <h2>Conversations</h2>
+        <p>List of users who contacted support</p>
+      </div>
+      <a class="button primary" href="{{ url_for('admin_payments') }}">Payment Methods</a>
+    </div>
+
+    <div class="admin-card">
+      {% if conversations %}
+        <ul class="payment-admin-list">
+          {% for c in conversations %}
+            <li>
+              <div>
+                <strong>{{ c['name'] or c['email'] }}</strong>
+                <p>{{ c['email'] }}</p>
+              </div>
+              <div class="admin-actions">
+                <a class="button" href="{{ url_for('admin_chat_view', email=c['email']) }}">Open</a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No conversations yet.</p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

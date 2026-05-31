@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+  <section class="admin-panel">
+    <div class="admin-header">
+      <div>
+        <p class="eyebrow">Conversation</p>
+        <h2>{{ email }}</h2>
+      </div>
+      <a class="button" href="{{ url_for('admin_chats') }}">Back</a>
+    </div>
+
+    <div class="admin-card">
+      {% if messages %}
+        <ul class="chat-list admin">
+          {% for m in messages %}
+            <li class="chat-{{ m['sender'] }}">
+              <div class="chat-meta"><strong>{{ m['name'] or m['email'] }}</strong> <span class="muted">{{ m['created_at'] }}</span></div>
+              <div class="chat-body">{{ m['message'] }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No messages yet.</p>
+      {% endif %}
+
+      <form method="post">
+        <label>Reply as admin<br><textarea name="message" rows="3" required></textarea></label>
+        <button type="submit">Send Reply</button>
+      </form>
+    </div>
+  </section>
+{% endblock %}

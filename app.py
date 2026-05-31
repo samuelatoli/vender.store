@@ -51,6 +51,16 @@ def init_db():
         FOREIGN KEY(product_id) REFERENCES products(id),
         FOREIGN KEY(payment_method_id) REFERENCES payment_methods(id)
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER,
+        user_id INTEGER,
+        name TEXT,
+        email TEXT,
+        message TEXT NOT NULL,
+        sender TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
 
     # Add legacy schema migration support for older databases.
     user_columns = [row[1] for row in c.execute("PRAGMA table_info(users)").fetchall()]
@@ -237,6 +247,69 @@ def admin_transactions():
                            ORDER BY t.created_at DESC''').fetchall()
     conn.close()
     return render_template('admin_transactions.html', transactions=rows)
+
+
+@app.route('/chat', methods=['GET', 'POST'])
+def chat():
+    # public support chat; if logged in, prefill name/email
+    conn = get_db_connection()
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        product_id = request.form.get('product_id')
+        message = request.form.get('message', '').strip()
+        sender = 'user'
+        user_id = session.get('user_id')
+        if not message or not (name and email):
+            flash('Name, email and message are required.')
+            return redirect(url_for('chat'))
+        try:
+            pid = int(product_id) if product_id else None
+        except ValueError:
+            pid = None
+        conn.execute('INSERT INTO messages (product_id, user_id, name, email, message, sender) VALUES (?, ?, ?, ?, ?, ?)', (pid, user_id, name, email, message, sender))
+        conn.commit()
+        flash('Message sent. An administrator will reply.')
+        return redirect(url_for('chat'))
+
+    # show recent messages from this user email if present in session
+    user_email = session.get('email')
+    msgs = []
+    if user_email:
+        msgs = conn.execute('SELECT * FROM messages WHERE email = ? ORDER BY created_at DESC LIMIT 50', (user_email,)).fetchall()
+    conn.close()
+    return render_template('chat.html', messages=msgs, user_email=user_email)
+
+
+@app.route('/admin/chats')
+def admin_chats():
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    rows = conn.execute('SELECT DISTINCT email, name FROM messages ORDER BY created_at DESC').fetchall()
+    conn.close()
+    return render_template('admin_chats.html', conversations=rows)
+
+
+@app.route('/admin/chats/<email>', methods=['GET', 'POST'])
+def admin_chat_view(email):
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    if request.method == 'POST':
+        # admin reply
+        text = request.form.get('message', '').strip()
+        if text:
+            conn.execute('INSERT INTO messages (product_id, user_id, name, email, message, sender) VALUES (?, ?, ?, ?, ?, ?)', (None, session.get('user_id'), None, email, text, 'admin'))
+            conn.commit()
+            flash('Reply sent.')
+            return redirect(url_for('admin_chat_view', email=email))
+
+    msgs = conn.execute('SELECT * FROM messages WHERE email = ? ORDER BY created_at ASC', (email,)).fetchall()
+    conn.close()
+    return render_template('admin_chat_view.html', email=email, messages=msgs)
 
 
 @app.route('/admin/payments', methods=['GET', 'POST'])
