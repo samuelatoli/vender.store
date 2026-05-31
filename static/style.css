@@ -1,1 +1,18 @@
-body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0}header{background:#222;color:#fff;padding:12px}header h1{margin:0;font-size:20px}nav a{color:#9cf;margin-right:8px}main{padding:16px}.grid{display:flex;flex-wrap:wrap;gap:12px}.card{border:1px solid #ddd;padding:12px;width:220px}.card img{max-width:100%;height:auto}.flashes{list-style:none;padding:0;color:green}
+:root{--bg:#f7f9fb;--primary:#2b6cb0;--accent:#60a5fa;--muted:#666}
+body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:var(--bg);color:#222}
+header{background:var(--primary);color:#fff;padding:14px 16px}
+header h1{margin:0;font-size:20px;display:inline-block}
+nav{display:inline-block;margin-left:16px}
+nav a{color:#dbeafe;margin-right:8px;text-decoration:none}
+main{padding:20px;max-width:1000px;margin:0 auto}
+.grid{display:flex;flex-wrap:wrap;gap:12px}
+.card{border:1px solid #e2e8f0;padding:12px;width:220px;background:#fff;border-radius:6px}
+.card img{max-width:100%;height:auto;border-radius:4px}
+.flashes{list-style:none;padding:0;margin:12px 0}
+.flashes li{background:#e6fffa;border:1px solid #bde3d3;padding:8px;border-radius:4px;color:#064e3b}
+form label{display:block;margin-bottom:8px}
+input[type=text],input[type=password],input[type=email],textarea{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:4px}
+button{background:var(--accent);border:none;color:#fff;padding:8px 12px;border-radius:4px;cursor:pointer}
+.product-detail{display:flex;gap:16px}
+.detail-image{max-width:320px;border-radius:6px}
+.detail-body{background:#fff;padding:12px;border-radius:6px;border:1px solid #e2e8f0}

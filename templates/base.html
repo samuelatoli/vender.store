@@ -11,8 +11,8 @@
       <h1>Vender Store</h1>
       <nav>
         <a href="{{ url_for('index') }}">Products</a> | <a href="{{ url_for('upload') }}">Upload Product</a>
-        {% if session.username %}
-          | Hello {{ session.username }} (<a href="{{ url_for('logout') }}">Logout</a>)
+        {% if session.email %}
+          | Hello {{ session.email }} (<a href="{{ url_for('logout') }}">Logout</a>)
         {% else %}
           | <a href="{{ url_for('login') }}">Login</a> | <a href="{{ url_for('signup') }}">Sign up</a>
         {% endif %}

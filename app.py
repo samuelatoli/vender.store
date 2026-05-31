@@ -28,7 +28,7 @@ def init_db():
     )''')
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )''')
     conn.commit()
@@ -105,18 +105,22 @@ def upload():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        if not username or not password:
-            flash('Username and password are required.')
+        if not email or not password:
+            flash('Email and password are required.')
+            return redirect(url_for('signup'))
+        # basic email validation
+        if '@' not in email:
+            flash('Please provide a valid email address.')
             return redirect(url_for('signup'))
         hashed = generate_password_hash(password)
         conn = get_db_connection()
         try:
-            conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed))
+            conn.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed))
             conn.commit()
         except sqlite3.IntegrityError:
-            flash('Username already taken.')
+            flash('Email already taken.')
             conn.close()
             return redirect(url_for('signup'))
         conn.close()
@@ -128,17 +132,17 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
         conn = get_db_connection()
-        user = conn.execute('SELECT id, username, password FROM users WHERE username = ?', (username,)).fetchone()
+        user = conn.execute('SELECT id, email, password FROM users WHERE email = ?', (email,)).fetchone()
         conn.close()
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
-            session['username'] = user['username']
+            session['email'] = user['email']
             flash('Logged in successfully.')
             return redirect(url_for('index'))
-        flash('Invalid username or password.')
+        flash('Invalid email or password.')
         return redirect(url_for('login'))
     return render_template('login.html')
 
@@ -146,7 +150,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
-    session.pop('username', None)
+    session.pop('email', None)
     flash('Logged out.')
     return redirect(url_for('index'))
 
