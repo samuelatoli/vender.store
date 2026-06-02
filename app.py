@@ -17,6 +17,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 app.secret_key = 'change-me'
 
+# Initialize SocketIO only if package is available
+try:
+    from flask_socketio import SocketIO, join_room, leave_room, emit
+    socketio = SocketIO(app, cors_allowed_origins='*')
+except Exception:
+    socketio = None
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -209,6 +216,49 @@ def user_is_admin():
     user = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,)).fetchone()
     conn.close()
     return bool(user and user['is_admin'])
+
+
+def get_product_contact(product_id):
+    try:
+        pid = int(product_id)
+    except Exception:
+        return None
+    conn = get_db_connection()
+    row = conn.execute('SELECT contact FROM products WHERE id = ?', (pid,)).fetchone()
+    conn.close()
+    return row['contact'] if row else None
+
+
+if socketio:
+    @socketio.on('join_room')
+    def handle_join(data):
+        room = data.get('room')
+        if room:
+            join_room(room)
+
+    @socketio.on('leave_room')
+    def handle_leave(data):
+        room = data.get('room')
+        if room:
+            leave_room(room)
+
+    @socketio.on('send_room_message')
+    def handle_send_room_message(data):
+        room = data.get('room')
+        product_id = data.get('product_id')
+        name = data.get('name')
+        email = data.get('email')
+        message = data.get('message')
+        sender = data.get('sender', 'user')
+        # persist message
+        try:
+            conn = get_db_connection()
+            conn.execute('INSERT INTO messages (product_id, user_id, name, email, message, sender) VALUES (?, ?, ?, ?, ?, ?)', (product_id, session.get('user_id'), name, email, message, sender))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+        emit('room_message', {'product_id': product_id, 'name': name, 'email': email, 'message': message, 'sender': sender}, room=room)
 
 
 def send_email_notification(to_addr, subject, body):

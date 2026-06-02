@@ -25,4 +25,26 @@
     </ul>
   </section>
   {% endif %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js" integrity="sha512-BfY2..." crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (function(){
+      if (typeof io === 'undefined') return;
+      var socket = io();
+      var email = '{{ session.get('email') or '' }}';
+      if (email) socket.emit('join_room', {room: email});
+      var form = document.querySelector('form');
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        var name = form.querySelector('input[name="name"]').value;
+        var emailv = form.querySelector('input[name="email"]').value;
+        var message = form.querySelector('textarea[name="message"]').value;
+        socket.emit('send_room_message', {room: emailv, product_id: null, name: name, email: emailv, message: message, sender: 'user'});
+      });
+      socket.on('room_message', function(d){
+        var list = document.getElementById('chat-messages') || document.createElement('div');
+        var el = document.createElement('div'); el.className = 'chat-' + (d.sender||'user'); el.innerHTML = '<div class="chat-meta"><strong>'+ (d.name||d.email) +'</strong></div><div class="chat-body">'+d.message+'</div>';
+        (document.getElementById('chat-messages')||document.body).appendChild(el);
+      });
+    })();
+  </script>
 {% endblock %}

@@ -37,7 +37,43 @@
         </ul>
       </div>
       {% endif %}
+    
+      <div class="auth-card" id="live-chat">
+        <h3>Live chat with vendor</h3>
+        <div id="chat-messages" class="chat-list"></div>
+        <form id="chat-form">
+          <input type="text" id="chat-name" placeholder="Your name" value="{{ session.get('email') and session.get('email').split('@')[0] or '' }}">
+          <input type="email" id="chat-email" placeholder="Your email" value="{{ session.get('email') or '' }}">
+          <textarea id="chat-message" placeholder="Type a message"></textarea>
+          <button type="submit">Send</button>
+        </form>
+      </div>
       <p><a href="{{ url_for('index') }}">Back to products</a></p>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (function(){
+      if (typeof io === 'undefined') return;
+      var socket = io();
+      var room = 'product_{{ product['id'] }}';
+      socket.emit('join_room', {room: room});
+      var chatForm = document.getElementById('chat-form');
+      var messages = document.getElementById('chat-messages');
+      chatForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        var name = document.getElementById('chat-name').value || '';
+        var email = document.getElementById('chat-email').value || '';
+        var message = document.getElementById('chat-message').value || '';
+        if (!message) return;
+        socket.emit('send_room_message', {room: room, product_id: {{ product['id'] }}, name: name, email: email, message: message, sender: 'user'});
+        document.getElementById('chat-message').value = '';
+      });
+      socket.on('room_message', function(d){
+        if (d.product_id != {{ product['id'] }}) return;
+        var el = document.createElement('div'); el.className = 'chat-' + (d.sender||'user'); el.innerHTML = '<div class="chat-meta"><strong>'+ (d.name||d.email) +'</strong></div><div class="chat-body">'+d.message+'</div>';
+        messages.appendChild(el);
+      });
+    })();
+  </script>
 {% endblock %}
