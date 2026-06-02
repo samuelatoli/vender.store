@@ -4,6 +4,8 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+import smtplib
+from email.message import EmailMessage
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -209,6 +211,40 @@ def user_is_admin():
     return bool(user and user['is_admin'])
 
 
+def send_email_notification(to_addr, subject, body):
+    # If ADMIN_EMAIL or SMTP settings are not configured, log the message instead
+    if not to_addr:
+        app.logger.info('Email not sent (no recipient configured): %s', subject)
+        return
+    host = os.environ.get('MAIL_HOST')
+    port = int(os.environ.get('MAIL_PORT', '587'))
+    username = os.environ.get('MAIL_USERNAME')
+    password = os.environ.get('MAIL_PASSWORD')
+    use_tls = os.environ.get('MAIL_USE_TLS', '1') in ('1', 'True', 'true')
+
+    msg = EmailMessage()
+    msg['Subject'] = subject
+    msg['From'] = username or f'no-reply@{os.uname().nodename}' if hasattr(os, 'uname') else (username or 'no-reply')
+    msg['To'] = to_addr
+    msg.set_content(body)
+
+    if not host or not username or not password:
+        app.logger.info('Email (simulated) to %s: %s\n%s', to_addr, subject, body)
+        return
+
+    try:
+        if use_tls:
+            server = smtplib.SMTP(host, port)
+            server.starttls()
+        else:
+            server = smtplib.SMTP_SSL(host, port)
+        server.login(username, password)
+        server.send_message(msg)
+        server.quit()
+    except Exception as e:
+        app.logger.exception('Failed to send email: %s', e)
+
+
 @app.route('/product/<int:product_id>/buy', methods=['POST'])
 def buy_product(product_id):
     name = request.form.get('buyer_name', '').strip()
@@ -231,6 +267,16 @@ def buy_product(product_id):
     conn.commit()
     conn.close()
     flash('Purchase request sent to administrator. They will contact you to complete payment.')
+    # notify admins via socket and send email
+    try:
+        if socketio:
+            socketio.emit('new_transaction', {'product_id': product_id, 'buyer_name': name, 'buyer_contact': contact, 'note': note}, room='admin')
+    except Exception:
+        pass
+    try:
+        send_email_notification(os.environ.get('ADMIN_EMAIL'), 'New purchase request', f'Product {product_id}\nBuyer: {name} {contact}\nNote: {note}')
+    except Exception:
+        pass
     return redirect(url_for('product_detail', product_id=product_id))
 
 
@@ -269,6 +315,17 @@ def chat():
             pid = None
         conn.execute('INSERT INTO messages (product_id, user_id, name, email, message, sender) VALUES (?, ?, ?, ?, ?, ?)', (pid, user_id, name, email, message, sender))
         conn.commit()
+        # emit real-time event to admin channel and to user room
+        try:
+            if socketio:
+                socketio.emit('new_message', {'email': email, 'name': name, 'message': message, 'sender': 'user'}, room='admin')
+                socketio.emit('new_message', {'email': email, 'name': name, 'message': message, 'sender': 'user'}, room=email)
+        except Exception:
+            pass
+        try:
+            send_email_notification(os.environ.get('ADMIN_EMAIL'), 'New support message', f'From: {name} <{email}>\n\n{message}')
+        except Exception:
+            pass
         flash('Message sent. An administrator will reply.')
         return redirect(url_for('chat'))
 
@@ -304,6 +361,16 @@ def admin_chat_view(email):
         if text:
             conn.execute('INSERT INTO messages (product_id, user_id, name, email, message, sender) VALUES (?, ?, ?, ?, ?, ?)', (None, session.get('user_id'), None, email, text, 'admin'))
             conn.commit()
+            # emit to user room and notify via email
+            try:
+                if socketio:
+                    socketio.emit('new_message', {'email': email, 'message': text, 'sender': 'admin'}, room=email)
+            except Exception:
+                pass
+            try:
+                send_email_notification(email, 'Admin reply', text)
+            except Exception:
+                pass
             flash('Reply sent.')
             return redirect(url_for('admin_chat_view', email=email))
 
