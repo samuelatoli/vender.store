@@ -16,6 +16,7 @@
         <nav>
           <a href="{{ url_for('index') }}">Products</a>
           <a href="{{ url_for('upload') }}">Upload</a>
+          <a href="{{ url_for('ai_chat') }}">AI Chat</a>
           {% if session.email %}
             <span class="user-badge">{{ session.email }}</span>
             {% if session.get('is_admin') %}

@@ -138,3 +138,17 @@ def test_user_can_request_payment(client):
     assert t is not None
     assert t[0] == 'Alice'
     assert 'alice@example.com' in t[1]
+
+
+def test_ai_chat_page_and_message_endpoint(client):
+    response = client.get('/ai-chat')
+    assert response.status_code == 200
+    assert b'Vender Store AI Chat' in response.data
+
+    response = client.post('/ai-chat/message', json={'message': 'How do I upload a product?'})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data is not None
+    assert 'response' in data
+    assert isinstance(data['response'], str)
+    assert len(data['response']) > 0

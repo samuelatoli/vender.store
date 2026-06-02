@@ -3,3 +3,5 @@ __pycache__
 products.db
 uploads/*
 !uploads/.gitkeep
+.env
+.env.*

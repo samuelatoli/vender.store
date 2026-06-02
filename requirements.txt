@@ -2,4 +2,5 @@ Flask==2.3.2
 python-socketio==5.9.0
 flask-socketio==5.3.2
 eventlet==0.33.3
+openai==1.11.0
 pytest==7.4.0

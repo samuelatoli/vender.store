@@ -7,6 +7,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import smtplib
 from email.message import EmailMessage
 
+try:
+    import openai
+except ImportError:
+    openai = None
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 DB_PATH = os.path.join(BASE_DIR, 'products.db')
@@ -227,6 +232,58 @@ def get_product_contact(product_id):
     row = conn.execute('SELECT contact FROM products WHERE id = ?', (pid,)).fetchone()
     conn.close()
     return row['contact'] if row else None
+
+
+def get_ai_response(prompt, user_email=None):
+    prompt_text = prompt.strip()
+    if not prompt_text:
+        return 'Please enter a question so I can help you.'
+
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if openai and api_key:
+        try:
+            openai.api_key = api_key
+            model = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
+            completion = openai.ChatCompletion.create(
+                model=model,
+                messages=[
+                    {'role': 'system', 'content': 'You are a helpful assistant for Vender Store. Answer politely and concisely.'},
+                    {'role': 'user', 'content': prompt_text}
+                ],
+                max_tokens=250,
+                temperature=0.7,
+            )
+            return completion.choices[0].message.content.strip()
+        except Exception as exc:
+            app.logger.exception('OpenAI request failed: %s', exc)
+
+    lower_prompt = prompt_text.lower()
+    if 'price' in lower_prompt or 'cost' in lower_prompt:
+        return 'I can help explain pricing and buying steps. Please check the product page for vendor contact details, and request payment through the product page form.'
+    if 'upload' in lower_prompt or 'list' in lower_prompt or 'product' in lower_prompt:
+        return 'To add a product, go to Upload, fill in the product name, description, contact, price, and attach an image if you like.'
+    if 'payment' in lower_prompt or 'buy' in lower_prompt or 'purchase' in lower_prompt:
+        return 'Use the product page to request payment. Choose an available payment method and send your contact details to the vendor.'
+    if 'admin' in lower_prompt or 'support' in lower_prompt:
+        return 'Support is available through the Chat page. You can also create an account and contact the administrator directly if you need help.'
+    return 'Welcome to Vender Store AI support. Ask about products, uploading items, payments, or how the site works.'
+
+
+@app.route('/ai-chat')
+def ai_chat():
+    return render_template('ai_chat.html')
+
+
+@app.route('/ai-chat/message', methods=['POST'])
+def ai_chat_message():
+    data = request.get_json(silent=True)
+    if not data or 'message' not in data:
+        return {'error': 'Message text is required.'}, 400
+    message = str(data.get('message', '')).strip()
+    if not message:
+        return {'error': 'Message text is required.'}, 400
+    response_text = get_ai_response(message, session.get('email'))
+    return {'response': response_text}
 
 
 if socketio:

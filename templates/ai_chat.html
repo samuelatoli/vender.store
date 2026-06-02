@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="auth-card">
+    <h2>Vender Store AI Chat</h2>
+    <p>Ask the AI assistant about products, uploads, payments, or how the marketplace works.</p>
+    <div id="ai-chat-list" class="chat-list"></div>
+    <form id="ai-chat-form">
+      <label>Your name<br><input type="text" id="ai-name" value="{{ session.get('email') and session.get('email').split('@')[0] or '' }}"></label>
+      <label>Your email<br><input type="email" id="ai-email" value="{{ session.get('email') or '' }}"></label>
+      <label>Question<br><textarea id="ai-message" rows="4" placeholder="Type your question here..."></textarea></label>
+      <button type="submit">Send to AI</button>
+    </form>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var chatList = document.getElementById('ai-chat-list');
+      var chatForm = document.getElementById('ai-chat-form');
+      var messageInput = document.getElementById('ai-message');
+
+      function addMessage(role, text) {
+        var entry = document.createElement('div');
+        entry.className = 'chat-' + (role === 'ai' ? 'admin' : 'user');
+        entry.innerHTML = '<div class="chat-meta"><strong>' + (role === 'ai' ? 'AI Assistant' : 'You') + '</strong></div>' +
+                          '<div class="chat-body">' + text.replace(/\n/g, '<br>') + '</div>';
+        chatList.appendChild(entry);
+        chatList.scrollTop = chatList.scrollHeight;
+      }
+
+      chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var message = messageInput.value.trim();
+        if (!message) {
+          return;
+        }
+        addMessage('user', message);
+        messageInput.value = '';
+
+        fetch('{{ url_for('ai_chat_message') }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message })
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.response) {
+              addMessage('ai', data.response);
+            } else if (data.error) {
+              addMessage('ai', 'Error: ' + data.error);
+            }
+          })
+          .catch(function() {
+            addMessage('ai', 'Sorry, the AI service is currently unavailable.');
+          });
+      });
+    });
+  </script>
+{% endblock %}
