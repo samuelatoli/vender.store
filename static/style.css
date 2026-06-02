@@ -258,6 +258,49 @@ button:hover {
   background: #1f5bb2;
 }
 
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.chat-bubble {
+  max-width: 100%;
+  padding: 16px;
+  border-radius: 22px;
+  position: relative;
+  box-shadow: 0 16px 38px rgba(53, 80, 140, 0.08);
+  background: #ffffff;
+}
+
+.chat-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #60a5fa, #2f6cc7);
+  color: #fff;
+}
+
+.chat-admin {
+  align-self: flex-start;
+  background: #f8fbff;
+  border: 1px solid rgba(47, 108, 199, 0.12);
+  color: #1f2937;
+}
+
+.chat-meta {
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.chat-body {
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
 .auth-card {
   max-width: 420px;
   margin: 0 auto;

@@ -287,6 +287,14 @@ def ai_chat_message():
 
 
 if socketio:
+    @socketio.on('ai_chat_message')
+    def handle_ai_chat_message(data):
+        message = str(data.get('message', '')).strip()
+        if not message:
+            emit('ai_chat_response', {'response': 'Please enter a message before sending.'})
+            return
+        response_text = get_ai_response(message, session.get('email'))
+        emit('ai_chat_response', {'response': response_text})
     @socketio.on('join_room')
     def handle_join(data):
         room = data.get('room')

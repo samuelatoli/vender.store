@@ -11,19 +11,52 @@
       <button type="submit">Send to AI</button>
     </form>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       var chatList = document.getElementById('ai-chat-list');
       var chatForm = document.getElementById('ai-chat-form');
       var messageInput = document.getElementById('ai-message');
+      var socket = typeof io !== 'undefined' ? io() : null;
 
       function addMessage(role, text) {
         var entry = document.createElement('div');
-        entry.className = 'chat-' + (role === 'ai' ? 'admin' : 'user');
+        entry.className = 'chat-bubble ' + (role === 'ai' ? 'chat-admin' : 'chat-user');
         entry.innerHTML = '<div class="chat-meta"><strong>' + (role === 'ai' ? 'AI Assistant' : 'You') + '</strong></div>' +
                           '<div class="chat-body">' + text.replace(/\n/g, '<br>') + '</div>';
         chatList.appendChild(entry);
         chatList.scrollTop = chatList.scrollHeight;
+      }
+
+      function sendToAI(message) {
+        if (socket) {
+          socket.emit('ai_chat_message', { message: message });
+        } else {
+          fetch('{{ url_for('ai_chat_message') }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+          })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              if (data.response) {
+                addMessage('ai', data.response);
+              } else if (data.error) {
+                addMessage('ai', 'Error: ' + data.error);
+              }
+            })
+            .catch(function() {
+              addMessage('ai', 'Sorry, the AI service is currently unavailable.');
+            });
+        }
+      }
+
+      if (socket) {
+        socket.on('ai_chat_response', function(data) {
+          if (data && data.response) {
+            addMessage('ai', data.response);
+          }
+        });
       }
 
       chatForm.addEventListener('submit', function(e) {
@@ -34,23 +67,7 @@
         }
         addMessage('user', message);
         messageInput.value = '';
-
-        fetch('{{ url_for('ai_chat_message') }}', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: message })
-        })
-          .then(function(response) { return response.json(); })
-          .then(function(data) {
-            if (data.response) {
-              addMessage('ai', data.response);
-            } else if (data.error) {
-              addMessage('ai', 'Error: ' + data.error);
-            }
-          })
-          .catch(function() {
-            addMessage('ai', 'Sorry, the AI service is currently unavailable.');
-          });
+        sendToAI(message);
       });
     });
   </script>
