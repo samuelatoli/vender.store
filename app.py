@@ -107,10 +107,20 @@ def get_db_connection():
 
 @app.route('/')
 def index():
+    search_query = request.args.get('q', '').strip()
     conn = get_db_connection()
-    products = conn.execute('SELECT id, name, description, contact, price, image FROM products ORDER BY id DESC').fetchall()
+    if search_query:
+        like_pattern = f'%{search_query}%'
+        products = conn.execute(
+            'SELECT id, name, description, contact, price, image FROM products '
+            'WHERE name LIKE ? OR description LIKE ? OR contact LIKE ? '
+            'ORDER BY id DESC',
+            (like_pattern, like_pattern, like_pattern)
+        ).fetchall()
+    else:
+        products = conn.execute('SELECT id, name, description, contact, price, image FROM products ORDER BY id DESC').fetchall()
     conn.close()
-    return render_template('list.html', products=products)
+    return render_template('list.html', products=products, query=search_query)
 
 
 @app.route('/product/<int:product_id>')

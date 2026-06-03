@@ -220,6 +220,28 @@ form {
   margin-top: 24px;
 }
 
+.search-bar {
+  display: flex;
+  gap: 12px;
+  margin: 18px 0 8px;
+  flex-wrap: wrap;
+}
+
+.search-bar input[type=text] {
+  flex: 1 1 320px;
+  min-width: 220px;
+}
+
+.search-bar button {
+  min-width: 120px;
+}
+
+.search-summary {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
 form label {
   display: block;
   margin-bottom: 16px;

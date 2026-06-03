@@ -14,8 +14,19 @@
     </div>
   </section>
   <h2>Products</h2>
+  <form action="{{ url_for('index') }}" method="get" class="search-bar">
+    <input type="text" name="q" placeholder="Search by name, description, or contact" value="{{ query }}" />
+    <button type="submit">Search</button>
+  </form>
+  {% if query %}
+    <p class="search-summary">Showing results for “<strong>{{ query }}</strong>”</p>
+  {% endif %}
   {% if not products %}
-    <p>No products yet. <a href="{{ url_for('upload') }}">Add one</a>.</p>
+    {% if query %}
+      <p>No products found. <a href="{{ url_for('upload') }}">Add one</a> or try a different search.</p>
+    {% else %}
+      <p>No products yet. <a href="{{ url_for('upload') }}">Add one</a>.</p>
+    {% endif %}
   {% else %}
     <div class="grid">
     {% for p in products %}
