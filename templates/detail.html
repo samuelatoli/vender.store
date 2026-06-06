@@ -9,6 +9,22 @@
       <p>{{ product['description'] }}</p>
       <p><strong>Price:</strong> ${{ '%.2f'|format(product['price'] or 0) }}</p>
       <p><strong>Contact:</strong> {{ product['contact'] or 'Not provided' }}</p>
+      {% if product['website'] %}
+      <p><strong>Website:</strong> <a href="{{ product['website'] }}" target="_blank" rel="noopener noreferrer">{{ product['website'] }}</a></p>
+      {% endif %}
+      {% if product['social_links'] %}
+      <div>
+        <strong>Social links:</strong>
+        <ul class="social-list">
+          {% for link in product['social_links'].split(',') %}
+            {% set url = link.strip() %}
+            {% if url %}
+              <li><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ url }}</a></li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
       {% if payment_methods %}
       <div class="payment-box">
         <h3>Payment options</h3>

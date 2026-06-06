@@ -43,6 +43,8 @@ def test_upload_product(client):
         'name': 'Test Product',
         'description': 'A sample product',
         'contact': 'test@example.com',
+        'website': 'https://example-vendor.com',
+        'social_links': 'https://instagram.com/vendor, https://facebook.com/vendor',
         'price': '9.99',
     }, follow_redirects=True)
 
@@ -51,6 +53,8 @@ def test_upload_product(client):
     assert b'Test Product' in response.data
     assert b'A sample product' in response.data
     assert b'test@example.com' in response.data
+    assert b'https://example-vendor.com' in response.data
+    assert b'https://instagram.com/vendor' in response.data
 
 
 def test_upload_invalid_price(client):

@@ -37,6 +37,8 @@ def init_db():
         name TEXT NOT NULL,
         description TEXT,
         contact TEXT,
+        website TEXT,
+        social_links TEXT,
         price REAL,
         image TEXT
     )''')
@@ -81,6 +83,12 @@ def init_db():
     if 'is_admin' not in user_columns:
         c.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0')
 
+    product_columns = [row[1] for row in c.execute("PRAGMA table_info(products)").fetchall()]
+    if 'website' not in product_columns:
+        c.execute('ALTER TABLE products ADD COLUMN website TEXT')
+    if 'social_links' not in product_columns:
+        c.execute('ALTER TABLE products ADD COLUMN social_links TEXT')
+
     conn.commit()
     conn.close()
 
@@ -112,13 +120,13 @@ def index():
     if search_query:
         like_pattern = f'%{search_query}%'
         products = conn.execute(
-            'SELECT id, name, description, contact, price, image FROM products '
-            'WHERE name LIKE ? OR description LIKE ? OR contact LIKE ? '
+            'SELECT id, name, description, contact, website, social_links, price, image FROM products '
+            'WHERE name LIKE ? OR description LIKE ? OR contact LIKE ? OR website LIKE ? OR social_links LIKE ? '
             'ORDER BY id DESC',
-            (like_pattern, like_pattern, like_pattern)
+            (like_pattern, like_pattern, like_pattern, like_pattern, like_pattern)
         ).fetchall()
     else:
-        products = conn.execute('SELECT id, name, description, contact, price, image FROM products ORDER BY id DESC').fetchall()
+        products = conn.execute('SELECT id, name, description, contact, website, social_links, price, image FROM products ORDER BY id DESC').fetchall()
     conn.close()
     return render_template('list.html', products=products, query=search_query)
 
@@ -140,6 +148,8 @@ def upload():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         contact = request.form.get('contact', '').strip()
+        website = request.form.get('website', '').strip()
+        social_links = request.form.get('social_links', '').strip()
         price = request.form.get('price', '').strip()
         file = request.files.get('image')
         if not name:
@@ -154,8 +164,8 @@ def upload():
             return redirect(url_for('upload'))
 
         conn = get_db_connection()
-        conn.execute('''INSERT INTO products (name, description, contact, price, image)
-                     VALUES (?, ?, ?, ?, ?)''', (name, description, contact, price_val, filename))
+        conn.execute('''INSERT INTO products (name, description, contact, website, social_links, price, image)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)''', (name, description, contact, website or None, social_links or None, price_val, filename))
         conn.commit()
         conn.close()
         flash('Product uploaded successfully.')

@@ -38,6 +38,12 @@
         <p>{{ p['description'] }}</p>
         <p><strong>Price:</strong> ${{ '%.2f'|format(p['price'] or 0) }}</p>
         <p><strong>Contact:</strong> {{ p['contact'] or 'Not provided' }}</p>
+        {% if p['website'] %}
+          <p><strong>Website:</strong> <a href="{{ p['website'] }}" target="_blank" rel="noopener noreferrer">{{ p['website'] }}</a></p>
+        {% endif %}
+        {% if p['social_links'] %}
+          <p><strong>Social:</strong> {{ p['social_links'] }}</p>
+        {% endif %}
       </div>
     {% endfor %}
     </div>
