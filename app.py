@@ -39,6 +39,7 @@ def init_db():
         contact TEXT,
         website TEXT,
         social_links TEXT,
+        uploader_id INTEGER,
         price REAL,
         image TEXT
     )''')
@@ -88,6 +89,8 @@ def init_db():
         c.execute('ALTER TABLE products ADD COLUMN website TEXT')
     if 'social_links' not in product_columns:
         c.execute('ALTER TABLE products ADD COLUMN social_links TEXT')
+    if 'uploader_id' not in product_columns:
+        c.execute('ALTER TABLE products ADD COLUMN uploader_id INTEGER')
 
     conn.commit()
     conn.close()
@@ -120,13 +123,13 @@ def index():
     if search_query:
         like_pattern = f'%{search_query}%'
         products = conn.execute(
-            'SELECT id, name, description, contact, website, social_links, price, image FROM products '
+            'SELECT id, name, description, contact, website, social_links, uploader_id, price, image FROM products '
             'WHERE name LIKE ? OR description LIKE ? OR contact LIKE ? OR website LIKE ? OR social_links LIKE ? '
             'ORDER BY id DESC',
             (like_pattern, like_pattern, like_pattern, like_pattern, like_pattern)
         ).fetchall()
     else:
-        products = conn.execute('SELECT id, name, description, contact, website, social_links, price, image FROM products ORDER BY id DESC').fetchall()
+        products = conn.execute('SELECT id, name, description, contact, website, social_links, uploader_id, price, image FROM products ORDER BY id DESC').fetchall()
     conn.close()
     return render_template('list.html', products=products, query=search_query)
 
@@ -164,8 +167,9 @@ def upload():
             return redirect(url_for('upload'))
 
         conn = get_db_connection()
-        conn.execute('''INSERT INTO products (name, description, contact, website, social_links, price, image)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)''', (name, description, contact, website or None, social_links or None, price_val, filename))
+        uploader = session.get('user_id')
+        conn.execute('''INSERT INTO products (name, description, contact, website, social_links, uploader_id, price, image)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (name, description, contact, website or None, social_links or None, uploader, price_val, filename))
         conn.commit()
         conn.close()
         flash('Product uploaded successfully.')
@@ -413,6 +417,43 @@ def buy_product(product_id):
     except Exception:
         pass
     return redirect(url_for('product_detail', product_id=product_id))
+
+
+@app.route('/product/<int:product_id>/delete', methods=['POST'])
+def delete_product(product_id):
+    conn = get_db_connection()
+    product = conn.execute('SELECT id, image, uploader_id FROM products WHERE id = ?', (product_id,)).fetchone()
+    if not product:
+        conn.close()
+        flash('Product not found.')
+        return redirect(url_for('index'))
+
+    allowed = False
+    try:
+        if user_is_admin():
+            allowed = True
+        elif session.get('user_id') and product['uploader_id'] == session.get('user_id'):
+            allowed = True
+    except Exception:
+        allowed = False
+
+    if not allowed:
+        conn.close()
+        flash('Permission denied.')
+        return redirect(url_for('product_detail', product_id=product_id))
+
+    # remove image file if exists
+    if product['image']:
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], product['image']))
+        except Exception:
+            pass
+
+    conn.execute('DELETE FROM products WHERE id = ?', (product_id,))
+    conn.commit()
+    conn.close()
+    flash('Product removed.')
+    return redirect(url_for('index'))
 
 
 @app.route('/admin/transactions')

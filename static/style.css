@@ -280,6 +280,15 @@ button:hover {
   background: #1f5bb2;
 }
 
+.danger {
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+.danger:hover { background: #dc2626; transform: translateY(-1px); }
+
 .social-list {
   list-style: none;
   padding: 0;

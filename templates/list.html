@@ -44,6 +44,11 @@
         {% if p['social_links'] %}
           <p><strong>Social:</strong> {{ p['social_links'] }}</p>
         {% endif %}
+        {% if session.get('is_admin') or (session.get('user_id') and session.get('user_id') == p['uploader_id']) %}
+          <form method="post" action="{{ url_for('delete_product', product_id=p['id']) }}" onsubmit="return confirm('Delete this product?');" style="margin-top:8px;">
+            <button type="submit" class="danger">Delete</button>
+          </form>
+        {% endif %}
       </div>
     {% endfor %}
     </div>
