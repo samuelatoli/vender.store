@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>Manage Products</h2>
+  <p>As an administrator you can remove products in bulk. Select the items and click <strong>Delete Selected</strong>.</p>
+  {% if not products %}
+    <p>No products available.</p>
+  {% else %}
+    <form method="post" id="bulk-delete-form" onsubmit="return confirmBulkDelete();">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all" /></th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Contact</th>
+            <th>Website</th>
+            <th>Uploader</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td><input type="checkbox" name="selected" value="{{ p['id'] }}"></td>
+            <td>{{ p['id'] }}</td>
+            <td><a href="{{ url_for('product_detail', product_id=p['id']) }}">{{ p['name'] }}</a></td>
+            <td>${{ '%.2f'|format(p['price'] or 0) }}</td>
+            <td>{{ p['contact'] or '' }}</td>
+            <td>{% if p['website'] %}<a href="{{ p['website'] }}" target="_blank">{{ p['website'] }}</a>{% endif %}</td>
+            <td>{{ p['uploader_id'] or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:12px;">
+        <button type="submit" class="danger">Delete Selected</button>
+      </div>
+    </form>
+    <script>
+      document.getElementById('select-all').addEventListener('change', function(e){
+        var checked = e.target.checked;
+        document.querySelectorAll('input[name="selected"]').forEach(function(cb){ cb.checked = checked });
+      });
+      function confirmBulkDelete(){
+        var any = Array.from(document.querySelectorAll('input[name="selected"]')).some(function(cb){ return cb.checked });
+        if(!any){ alert('Please select at least one product to delete.'); return false; }
+        return confirm('Delete selected products? This action cannot be undone.');
+      }
+    </script>
+  {% endif %}
+{% endblock %}

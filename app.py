@@ -580,6 +580,39 @@ def admin_payments():
     return render_template('admin_payments.html', payment_methods=payment_methods)
 
 
+@app.route('/admin/products', methods=['GET', 'POST'])
+def admin_products():
+    if not user_is_admin():
+        flash('Administrator access required.')
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    if request.method == 'POST':
+        ids = request.form.getlist('selected')
+        removed = 0
+        for id_str in ids:
+            try:
+                pid = int(id_str)
+            except Exception:
+                continue
+            prod = conn.execute('SELECT image FROM products WHERE id = ?', (pid,)).fetchone()
+            if prod:
+                if prod['image']:
+                    try:
+                        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], prod['image']))
+                    except Exception:
+                        pass
+                conn.execute('DELETE FROM products WHERE id = ?', (pid,))
+                removed += 1
+        conn.commit()
+        conn.close()
+        flash(f'{removed} product(s) removed.')
+        return redirect(url_for('admin_products'))
+
+    rows = conn.execute('SELECT id, name, price, contact, website, uploader_id FROM products ORDER BY id DESC').fetchall()
+    conn.close()
+    return render_template('admin_products.html', products=rows)
+
+
 @app.route('/admin/payments/<int:method_id>/toggle')
 def toggle_payment_method(method_id):
     if not user_is_admin():

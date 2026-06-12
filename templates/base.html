@@ -21,6 +21,7 @@
             <span class="user-badge">{{ session.email }}</span>
             {% if session.get('is_admin') %}
               <a href="{{ url_for('admin_payments') }}">Admin</a>
+              <a href="{{ url_for('admin_products') }}">Manage Products</a>
             {% endif %}
             <a href="{{ url_for('logout') }}">Logout</a>
           {% else %}

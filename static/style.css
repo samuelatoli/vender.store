@@ -303,6 +303,19 @@ button:hover {
   color: var(--primary);
 }
 
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-table th, .admin-table td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+.admin-table thead th {
+  background: #f1f5f9;
+}
+
 .chat-list {
   display: flex;
   flex-direction: column;
